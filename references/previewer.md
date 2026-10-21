@@ -42,6 +42,12 @@ Si el proyecto ya tenía un `DESIGN.md`, el navegador abre con ese documento ya 
 
 El servidor solo acepta conexiones de loopback, solo escribe dentro del directorio del proyecto y exige la cabecera `X-Designmd-Token` (token aleatorio por sesión, que viaja en la página servida y en el archivo de sesión) en toda escritura: un portal cualquiera abierto en otra pestaña no puede tocar el `DESIGN.md`.
 
+Tres medidas acotan el riesgo de la sesión local:
+
+- El contenido del proyecto se incrusta en la página con `<`, `>` y `&` escapados, de modo que un `</script>` dentro de un `DESIGN.md` no puede romper el contexto del script ni inyectar código en la página servida.
+- El archivo de sesión (donde vive el token) se crea con permisos `0600`, de modo que ningún otro usuario del equipo puede leerlo.
+- La validación del destino compara las rutas reales, no solo las léxicas: un subdirectorio del proyecto que sea un symlink hacia otro sitio se rechaza y no permite escribir fuera del proyecto.
+
 ### Variables de entorno
 
 - `DESIGNMD_PREVIEWER` — ruta alternativa al HTML de la plantilla.

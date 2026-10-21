@@ -22,7 +22,7 @@
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -91,9 +91,47 @@ function isAlive(pid) {
   }
 }
 
+/** Ruta real del ancestro existente más cercano de `dir`. */
+function realpathOfNearest(dir) {
+  let current = dir;
+  for (;;) {
+    try {
+      return realpathSync(current);
+    } catch {
+      const parent = dirname(current);
+      if (parent === current) return null;
+      current = parent;
+    }
+  }
+}
+
+/**
+ * ¿Está `target` dentro de `project`? Se compara primero de forma léxica y
+ * después sobre las rutas reales: un subdirectorio del proyecto que sea un
+ * symlink a otro sitio no puede servir para escribir fuera del proyecto.
+ */
 function insideProject(project, target) {
-  const root = resolve(project) + sep;
-  return resolve(target).startsWith(root);
+  const root = resolve(project);
+  const t = resolve(target);
+  if (!t.startsWith(root + sep)) return false;
+  const realRoot = realpathOfNearest(root);
+  const realDir = realpathOfNearest(dirname(t));
+  if (!realRoot || !realDir) return false;
+  return realDir === realRoot || realDir.startsWith(realRoot + sep);
+}
+
+/**
+ * Serializa un valor para incrustarlo dentro de un `<script>`: escapa `<`, `>`
+ * y `&` para que un `</script>` en el contenido del proyecto no rompa el
+ * contexto del script e inyecte código en la página servida.
+ */
+function jsonForScript(value) {
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 }
 
 function openBrowser(url) {
@@ -122,7 +160,7 @@ function bootstrapScript(cfg) {
   return [
     "<script>",
     "(function(){",
-    "var CFG = " + JSON.stringify(cfg) + ";",
+    "var CFG = " + jsonForScript(cfg) + ";",
     "function toastMsg(m){ try{ if (typeof toast === 'function') toast(m); }catch(e){} }",
     "function currentMd(){",
     "  var ta = document.getElementById('source');",
@@ -361,7 +399,14 @@ function serve(cfg) {
         null,
         2,
       ),
+      { encoding: "utf8", mode: 0o600 },
     );
+    // El token de la sesión vive en ese archivo: solo su usuario puede leerlo.
+    try {
+      chmodSync(cfg.sessionFile, 0o600);
+    } catch {
+      /* el sistema de archivos no admite el cambio de permisos */
+    }
   });
 
   process.on("SIGTERM", () => {
