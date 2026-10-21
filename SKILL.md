@@ -68,4 +68,4 @@ Carga esta skill cuando el usuario quiera definir o cambiar el sistema visual de
 - `assets/designmd-session.mjs` — servidor de sesión: `start` / `status` / `stop`.
 - `assets/check-design.mjs` — auditoría de estructura y contraste; sale con 1 si hay `FAIL`.
 - `references/palette-system.md` — derivación de paleta desde un color semilla.
-- `references/previewer.md` — detalle de la sesión y de las suites de verificación.
+- `references/previewer.md` — detalle de la sesión de diseño, de su API interna y de las precauciones del previewer.

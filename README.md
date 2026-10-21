@@ -33,8 +33,7 @@ git clone https://github.com/kharoldcanova/design-md.git ~/.config/opencode/skil
 | `assets/check-design.mjs` | Checker del documento: estructura canónica, tabla de tokens, placeholders y contraste AA. Sale con código 1 si hay `FAIL`. |
 | `assets/DESIGN.template.md` | Esqueleto canónico del `DESIGN.md`; base del modo entrevista. |
 | `references/palette-system.md` | Derivación de una paleta luz/oscuro a partir de un color semilla. |
-| `references/previewer.md` | Detalle de la sesión, de la API interna y de las suites de verificación. |
-| `verify/` | Suites de prueba con Playwright + Chromium (opcionales; no son necesarias para usar la skill). |
+| `references/previewer.md` | Detalle de la sesión, de la API interna y de las precauciones del previewer. |
 
 ## Flujo
 
@@ -50,18 +49,13 @@ Si el usuario rechaza el navegador, la skill entra en modo entrevista: pregunta 
 
 ## Verificación
 
-Las suites usan Playwright + Chromium y no añaden dependencias a la plantilla.
+La skill se comprueba con el checker sobre el documento final:
 
 ```bash
-node verify/smoke.mjs     # 24 comprobaciones sobre la UI real del previewer
-node verify/session.mjs   # 10 comprobaciones, del navegador al archivo del proyecto
-node verify/e2e.mjs       # 10 comprobaciones, el flujo completo de la skill
+node assets/check-design.mjs <proyecto>/DESIGN.md
 ```
 
-- `PLAYWRIGHT_MODULE` — ruta al paquete `playwright` (se autodetecta en `~/.npm/_npx/*/node_modules/playwright`).
-- `CHROMIUM_PATH` — binario de Chromium (por defecto `/usr/bin/chromium`).
-
-Salida: `N passed, M failed`; sale con código 1 si algo falla.
+Sale con código 1 si hay `FAIL` (estructura, tokens, placeholders o contraste).
 
 ## Licencia
 
